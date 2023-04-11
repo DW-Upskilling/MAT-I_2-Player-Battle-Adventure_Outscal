@@ -4,25 +4,6 @@
 #include <vector>
 using namespace std;
 
-enum SpecialAbilitiesType {
-  CriticalHitsAbility = 2,
-  BlockerAbility = 3,
-  LifeStealAbility = 4,
-  RangedAttackAbility = 5
-};
-enum SpecialBossAbilitiesType {
-  GroundSlashAbility = 6,
-  SpeedDashAbility = 7,
-  RockAbility = 8
-};
-enum SpecialItemsType {
-  MapItem = 1,
-  SwordItem = 2,
-  ShieldItem = 3,
-  ArmourItem = 4,
-  BowItem = 5
-};
-
 class Constants {
 public:
   // Player default attributes
@@ -32,7 +13,7 @@ public:
   static const int DEFAULT_ENEMY_HEALTH = 60, DEFAULT_ENEMY_MELEE = 35;
   static const int DEFAULT_ENEMY_DEFENCE = 100;
   // Boss Enemy default attributes
-  static const int DEFAULT_BOSS_HEALTH = 500, DEFAULT_BOSS_MELEE = 75;
+  static const int DEFAULT_BOSS_HEALTH = 500, DEFAULT_BOSS_MELEE = 150;
   static const int DEFAULT_BOSS_DEFENCE = 300;
   static constexpr const char *BOSS_NAME = "Murlocs";
   // Level default attributes
@@ -81,7 +62,13 @@ protected:
   }
 
 public:
-  PlayerEntity(string name) { this->name = name; }
+  PlayerEntity(string name) {
+    this->name = name;
+    this->setHealth(Constants::DEFAULT_HEALTH);
+    this->setMelee(Constants::DEFAULT_MELEE);
+    this->setDefence(Constants::DEFAULT_DEFENCE);
+    this->setHealthRegeneration(Constants::DEFAULT_HEALTH_REGENERATION);
+  }
   virtual ~PlayerEntity() {}
 
   string getName() { return name; }
@@ -112,6 +99,19 @@ public:
 };
 
 class Abilities {
+protected:
+  enum SpecialAbilitiesType {
+    CriticalHitsAbility = 2,
+    BlockerAbility = 3,
+    LifeStealAbility = 4,
+    RangedAttackAbility = 5
+  };
+  enum SpecialBossAbilitiesType {
+    GroundSlashAbility = 6,
+    SpeedDashAbility = 7,
+    RockAbility = 8
+  };
+
 private:
   vector<SpecialAbilitiesType> specialAbilities, specialAttackAbilities,
       specialDefenceAbilities;
@@ -316,6 +316,15 @@ public:
   virtual void heal(int healed) = 0;
 };
 class Items {
+protected:
+  enum SpecialItemsType {
+    MapItem = 1,
+    SwordItem = 2,
+    ShieldItem = 3,
+    ArmourItem = 4,
+    BowItem = 5
+  };
+
 private:
   vector<SpecialItemsType> specialItems;
   vector<SpecialItemsType> specialAttackItems;
@@ -447,6 +456,11 @@ public:
 };
 
 class Player : public PlayerEntity, public Abilities, public Items {
+private:
+  int playerStatBoost;
+  void setPlayerStatBoost(int playerStatBoost) {
+    this->playerStatBoost = playerStatBoost;
+  }
 
 public:
   Player(string playerName) : PlayerEntity(playerName) {
@@ -454,6 +468,7 @@ public:
     this->setMelee(Constants::DEFAULT_MELEE);
     this->setDefence(Constants::DEFAULT_DEFENCE);
     this->setHealthRegeneration(Constants::DEFAULT_HEALTH_REGENERATION);
+    this->setPlayerStatBoost(Constants::DEFAULT_STAT_BOOST);
   }
   ~Player() {
     cout << "[Reaper]:: Oh, what a tragedy! The once-mighty warrior "
@@ -475,6 +490,7 @@ public:
     defence += Abilities::triggerDefence();
     return defence;
   }
+  int getPlayerStatBoost() { return playerStatBoost; }
 
   void show() {
     cout << "\nSTATS OF " << getName() << endl;
@@ -558,13 +574,12 @@ public:
   }
 
   void levelRewards(int level) {
-    setHealth((getHealth() / 100.0) * Constants::DEFAULT_STAT_BOOST +
-              getHealth());
-    setMelee((getMelee() / 100.0) * Constants::DEFAULT_STAT_BOOST + getMelee());
-    setDefence((getDefence() / 100.0) * Constants::DEFAULT_STAT_BOOST +
-               getDefence());
+    setPlayerStatBoost(getPlayerStatBoost() + 5);
+    setHealth((getHealth() / 100.0) * getPlayerStatBoost() + getHealth());
+    setMelee((getMelee() / 100.0) * getPlayerStatBoost() + getMelee());
+    setDefence((getDefence() / 100.0) * getPlayerStatBoost() + getDefence());
     setHealthRegeneration((getHealthRegeneration() / 100.0) *
-                              Constants::DEFAULT_STAT_BOOST +
+                              getPlayerStatBoost() +
                           getHealthRegeneration());
 
     if (level < Constants::DEFAULT_MAX_LEVEL) {
@@ -735,7 +750,7 @@ public:
               "charges towards you*"
            << endl;
       cout << "\nPress ENTER to continue.";
-      cin.ignore();
+      // cin.ignore();
       getline(cin, buffer);
       enemies.push_back(make_unique<BossEnemy>(string(Constants::BOSS_NAME)));
     }
@@ -786,7 +801,46 @@ private:
   }
 
 public:
-  Game() {}
+  Game() {
+    cout << "################################" << endl;
+    cout << "### WELCOME TO RPG ADVENTURE ###" << endl;
+    cout << "################################" << endl;
+  }
+  void run() {
+    int choice = 0;
+    while (choice != -1) {
+      cout
+          << "\n[Hobbit]:: Hello, adventurer! Welcome to the Champions Village."
+          << endl;
+      cout
+          << "[Hobbit]:: Last week, our village was attacked by orcs, and they "
+             "took all of my latest collection of hoodies."
+          << endl;
+      cout << "1. Help the Hobbit" << endl;
+      cout << "2. Ignore him like a coward" << endl;
+      cout << "Would you be able to help me retrieve them?";
+      cin >> choice;
+      switch (choice) {
+      case 1:
+        cout << "[Hobbit]:: I am heartened to hear that you shall aid me in my "
+                "plight"
+             << endl;
+        cout << "[Hobbit]:: I know a skilled traveller who can guide you "
+                "through "
+                "the perilous 'Dark Forest' and the dense 'Small Forest'. With "
+                "their help and your courage, we can reclaim my stolen "
+                "hoodies.\n"
+             << endl;
+        this->start();
+        break;
+      case 2:
+        choice = -1;
+        break;
+      default:
+        choice = 0;
+      }
+    }
+  }
   void start() {
     string playerName, buffer;
     cout << "[Traveller]:: Greetings, adventurer. It feels a bit odd to "
@@ -831,37 +885,6 @@ public:
 
 int main() {
   Game game;
-  cout << "################################" << endl;
-  cout << "### WELCOME TO RPG ADVENTURE ###" << endl;
-  cout << "################################" << endl;
-
-  int choice = 0;
-  while (choice != -1) {
-    cout << "\n[Hobbit]:: Hello, adventurer! Welcome to the Champions Village."
-         << endl;
-    cout << "[Hobbit]:: Last week, our village was attacked by orcs, and they "
-            "took all of my latest collection of hoodies."
-         << endl;
-    cout << "1. Help the Hobbit" << endl;
-    cout << "2. Ignore him like a coward" << endl;
-    cout << "Would you be able to help me retrieve them?";
-    cin >> choice;
-    switch (choice) {
-    case 1:
-      cout << "[Hobbit]:: I am heartened to hear that you shall aid me in my "
-              "plight"
-           << endl;
-      cout << "[Hobbit]:: I know a skilled traveller who can guide you through "
-              "the perilous 'Dark Forest' and the dense 'Small Forest'. With "
-              "their help and your courage, we can reclaim my stolen hoodies.\n"
-           << endl;
-      game.start();
-      break;
-    case 2:
-      choice = -1;
-      break;
-    default:
-      choice = 0;
-    }
-  }
+  game.run();
+  return 0;
 }
